@@ -1,0 +1,44 @@
+const { Client, GatewayIntentBits } = require('discord.js');
+const mongoose = require('mongoose');
+require('dotenv').config();
+
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMembers
+    ]
+});
+
+// Connect to MongoDB (replace with your MongoDB URI)
+mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+}).then(() => console.log("Connected to MongoDB"))
+.catch(err => console.log(err));
+
+// Command Handler
+client.commands = new Map();
+const commandFiles = ['economy', 'gambling', 'animals', 'fun', 'social', 'meme', 'emotes', 'actions', 'utility'];
+commandFiles.forEach(cmd => {
+    const command = require(`./commands/${cmd}`);
+    client.commands.set(cmd, command);
+});
+
+client.on('messageCreate', async message => {
+    if (!message.content.startsWith("owo") || message.author.bot) return;
+    
+    const args = message.content.slice(4).trim().split(/ +/);
+    const command = args.shift().toLowerCase();
+
+    if (client.commands.has(command)) {
+        client.commands.get(command).execute(message, args);
+    }
+});
+
+client.once('ready', () => {
+    console.log(`${client.user.tag} is online!`);
+});
+
+client.login(process.env.TOKEN);
